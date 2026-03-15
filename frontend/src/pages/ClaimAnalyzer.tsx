@@ -18,11 +18,13 @@ export default function ClaimAnalyzer() {
       recommendations: string[];
     };
   } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
     if (!file) return;
     setAnalyzing(true);
     setResult(null);
+    setError(null);
     
     const formData = new FormData();
     formData.append('file', file);
@@ -36,8 +38,9 @@ export default function ClaimAnalyzer() {
         nlp_report: resp.data.nlp_report
       });
       setAnalyzing(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.response?.data?.detail || "An unexpected error occurred during analysis.");
       setAnalyzing(false);
     }
   };
@@ -133,12 +136,25 @@ export default function ClaimAnalyzer() {
           </div>
         </motion.div>
 
-        {/* Result Area */}
         <motion.div 
           initial={{ x: 20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           className="lg:col-span-8 glass-light dark:glass-dark p-8 flex flex-col space-y-8 min-h-[500px] relative overflow-hidden"
         >
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-red-500/10 border border-red-500/20 text-red-500 p-6 rounded-2xl flex items-start space-x-4 mb-4"
+            >
+              <AlertCircle className="flex-shrink-0 mt-1" size={24} />
+              <div className="space-y-1">
+                <h4 className="font-bold">Neural Scan Inference Error</h4>
+                <p className="text-sm opacity-80">{error}</p>
+              </div>
+            </motion.div>
+          )}
+
           <AnimatePresence mode="wait">
             {!result && !analyzing && (
               <motion.div 
@@ -273,33 +289,35 @@ export default function ClaimAnalyzer() {
                     <h3 className="text-xl font-bold">NLP Medical Report</h3>
                   </div>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="space-y-1">
                       <h4 className="text-xs font-bold text-slate-500 uppercase">Executive Summary</h4>
-                      <p className="text-sm leading-relaxed text-slate-300">{result.nlp_report.summary}</p>
+                      <p className="text-sm leading-relaxed text-slate-300">
+                        {result.nlp_report?.summary || "Summary data unavailable"}
+                      </p>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <h4 className="text-xs font-bold text-slate-500 uppercase">Key Findings</h4>
                         <ul className="space-y-1">
-                          {result.nlp_report.findings.map((f, i) => (
+                          {result.nlp_report?.findings?.map((f, i) => (
                             <li key={i} className="text-xs flex items-start space-x-2">
                               <span className="text-cyan-400 mt-1">•</span>
                               <span>{f}</span>
                             </li>
-                          ))}
+                          )) || <li className="text-xs text-slate-500 italic">No findings detected</li>}
                         </ul>
                       </div>
                       <div className="space-y-2">
                         <h4 className="text-xs font-bold text-slate-500 uppercase">Recommendations</h4>
                         <ul className="space-y-1">
-                          {result.nlp_report.recommendations.map((r, i) => (
+                          {result.nlp_report?.recommendations?.map((r, i) => (
                             <li key={i} className="text-xs flex items-start space-x-2">
                               <span className="text-purple-400 mt-1">•</span>
                               <span>{r}</span>
                             </li>
-                          ))}
+                          )) || <li className="text-xs text-slate-500 italic">No recommendations provided</li>}
                         </ul>
                       </div>
                     </div>
