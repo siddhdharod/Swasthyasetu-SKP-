@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+build/
+.eslintcache
+*.log
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Misc
+tmp/
+*.txt
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/
+brain/
