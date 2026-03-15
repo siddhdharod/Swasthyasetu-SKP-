@@ -29,8 +29,16 @@ export default function ChatbotWidget() {
     try {
       const res = await axios.post('http://localhost:8000/api/chatbot/ask', { message: userMsg });
       setMessages(prev => [...prev, {role: 'ai', content: res.data.response}]);
-    } catch (err) {
-      setMessages(prev => [...prev, {role: 'ai', content: "Neural sync interrupted. Please try again."}]);
+    } catch (err: any) {
+      let errorMsg = "Neural sync interrupted. Please try again.";
+      if (err.response?.status === 401) {
+        errorMsg = "Neural link authentication failed. Please login to access AI nodes.";
+      } else if (err.response?.status === 429 || err.response?.data?.detail?.includes("Quota")) {
+        errorMsg = "AI resource limit reached. Please try again in 60 seconds.";
+      } else if (err.response?.data?.detail) {
+        errorMsg = err.response.data.detail;
+      }
+      setMessages(prev => [...prev, {role: 'ai', content: errorMsg}]);
     } finally {
       setLoading(false);
     }

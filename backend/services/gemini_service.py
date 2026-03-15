@@ -12,7 +12,7 @@ class GeminiService:
     @staticmethod
     async def refine_problem(description: str):
         try:
-            model = genai.GenerativeModel('gemini-flash-latest')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             prompt = f"""
             Act as a professional healthcare research consultant. 
             Refine the following healthcare problem statement into a structured research format.
@@ -67,23 +67,35 @@ class GeminiService:
     @staticmethod
     async def get_chatbot_response(user_query: str):
         try:
-            model = genai.GenerativeModel('gemini-flash-latest')
-            prompt = f"""
-            Act as a professional "AI Health Assistant" for the SwasthyaSetu platform.
-            Your goal is to provide helpful, concise, and scientifically accurate healthcare information.
-            
-            Guidelines:
-            - Be empathetic and professional.
-            - If the user asks for a diagnosis, remind them to consult a real physician.
-            - Keep responses concise (under 4-5 sentences).
-            
-            User Query: {user_query}
-            """
-            
-            response = await model.generate_content_async(prompt)
-            return response.text
+            # Using 1.5-flash as default, fallback to 8b if rate limited
+            model_name = 'gemini-1.5-flash'
+            try:
+                model = genai.GenerativeModel(model_name)
+                prompt = f"""
+                Act as a professional "AI Health Assistant" for the SwasthyaSetu platform.
+                Your goal is to provide helpful, concise, and scientifically accurate healthcare information.
+                
+                Guidelines:
+                - Be empathetic and professional.
+                - If the user asks for a diagnosis, remind them to consult a real physician.
+                - Keep responses concise (under 4-5 sentences).
+                
+                User Query: {user_query}
+                """
+                response = await model.generate_content_async(prompt)
+                return response.text
+            except Exception as e:
+                if "429" in str(e) or "quota" in str(e).lower():
+                    # Attempt fallback to 8b which might have different limits
+                    model = genai.GenerativeModel('gemini-1.5-flash-8b')
+                    response = await model.generate_content_async(prompt)
+                    return response.text
+                raise e
         except Exception as e:
-            print(f"Gemini Chatbot Error: {e}")
+            error_str = str(e)
+            print(f"Gemini Chatbot Error: {error_str}")
+            if "429" in error_str or "quota" in error_str.lower():
+                return "AI Quota Exceeded. Please wait a moment or upgrade your API tier."
             return "I'm currently having trouble connecting to my neural network. Please try again in a moment."
 
     @staticmethod
@@ -111,7 +123,7 @@ class GeminiService:
     @staticmethod
     async def get_suggestions(text: str, context: str):
         try:
-            model = genai.GenerativeModel('gemini-flash-latest')
+            model = genai.GenerativeModel('gemini-1.5-flash-8b') # Use lightest model for suggestions
             
             context_description = "healthcare innovation problem title"
             if context == "dataset_search":
