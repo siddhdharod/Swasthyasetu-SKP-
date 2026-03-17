@@ -17,6 +17,8 @@ class DiseaseReportRequest(BaseModel):
     disease_name: str
     description: Optional[str] = ""
     severity: str = "Moderate" # Mild, Moderate, Severe
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 @router.post("/update-location")
 async def update_location(request: UpdateLocationRequest, current_user: dict = Depends(get_current_user)):
@@ -37,32 +39,47 @@ async def update_location(request: UpdateLocationRequest, current_user: dict = D
 
 @router.post("/report")
 async def report_disease(request: DiseaseReportRequest, current_user: dict = Depends(get_current_user)):
-    # Get user's current location from users collection
-    user = await users_collection.find_one({"email": current_user["sub"]})
-    if not user or "latitude" not in user:
-        raise HTTPException(status_code=400, detail="Location permission required to report a disease.")
+    # Fallback to user location if not provided
+    lat = request.latitude
+    lng = request.longitude
+    
+    if lat is None or lng is None:
+        user = await users_collection.find_one({"email": current_user["sub"]})
+        if not user or "latitude" not in user:
+            raise HTTPException(status_code=400, detail="Location coordinates required to report a disease.")
+        lat = user["latitude"]
+        lng = user["longitude"]
 
     report_doc = {
         "disease_name": request.disease_name,
         "description": request.description,
         "severity": request.severity,
-        "latitude": user["latitude"],
-        "longitude": user["longitude"],
+        "latitude": lat,
+        "longitude": lng,
         "location": {
             "type": "Point",
-            "coordinates": [user["longitude"], user["latitude"]]
+            "coordinates": [lng, lat]
         },
         "timestamp": time.time()
     }
     
     result = await disease_reports_collection.insert_one(report_doc)
-    return {"message": "Disease reported successfully.", "id": str(result.inserted_id)}
+    return {
+        "status": "success",
+        "message": "Disease report submitted",
+        "id": str(result.inserted_id)
+    }
+
+@router.post("/report-disease")
+async def report_disease_public(request: DiseaseReportRequest, current_user: dict = Depends(get_current_user)):
+    # Alias for /report with requested response format
+    return await report_disease(request, current_user)
 
 @router.get("/nearby")
 async def get_nearby_diseases(
     lat: float = Query(...), 
     lng: float = Query(...), 
-    radius: float = Query(2000), # radius in meters
+    radius: float = Query(20000), # radius in meters (Default changed to 20km)
     time_filter: Optional[int] = Query(None) # in days
 ):
     try:

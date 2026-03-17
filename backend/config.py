@@ -8,6 +8,7 @@ class Config:
     CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
     CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
     CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+    CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
     
     SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
@@ -19,3 +20,6 @@ class Config:
     JWT_EXPIRATION = int(os.getenv("JWT_EXPIRATION", 86400))
     
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")

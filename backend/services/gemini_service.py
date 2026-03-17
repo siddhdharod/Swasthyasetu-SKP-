@@ -1,6 +1,7 @@
 import google.generativeai as genai
 from config import Config
 import json
+import time
 
 # Configure Gemini with API Key from Config
 if Config.GOOGLE_API_KEY:
@@ -12,7 +13,7 @@ class GeminiService:
     @staticmethod
     async def refine_problem(description: str):
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel(Config.GEMINI_MODEL)
             prompt = f"""
             Act as a professional healthcare research consultant. 
             Refine the following healthcare problem statement into a structured research format.
@@ -41,7 +42,7 @@ class GeminiService:
     @staticmethod
     async def generate_ideas(problem_text: str):
         try:
-            model = genai.GenerativeModel('gemini-flash-latest')
+            model = genai.GenerativeModel(Config.GEMINI_MODEL)
             prompt = f"""
             Based on this healthcare problem: "{problem_text}", 
             generate 3 intelligent, innovative solution ideas.
@@ -65,46 +66,23 @@ class GeminiService:
             ]
 
     @staticmethod
-    async def get_chatbot_response(user_query: str):
+    async def get_chatbot_response(message: str, history: list = []):
         try:
-            # Using 1.5-flash as default, fallback to 8b if rate limited
-            model_name = 'gemini-1.5-flash'
-            try:
-                model = genai.GenerativeModel(model_name)
-                prompt = f"""
-                Act as a professional "AI Health Assistant" for the SwasthyaSetu platform.
-                Your goal is to provide helpful, concise, and scientifically accurate healthcare information.
-                
-                Guidelines:
-                - Be empathetic and professional.
-                - If the user asks for a diagnosis, remind them to consult a real physician.
-                - Keep responses concise (under 4-5 sentences).
-                
-                User Query: {user_query}
-                """
-                response = await model.generate_content_async(prompt)
-                return response.text
-            except Exception as e:
-                if "429" in str(e) or "quota" in str(e).lower():
-                    # Attempt fallback to 8b which might have different limits
-                    model = genai.GenerativeModel('gemini-1.5-flash-8b')
-                    response = await model.generate_content_async(prompt)
-                    return response.text
-                raise e
+            model = genai.GenerativeModel(Config.GEMINI_MODEL)
+            chat = model.start_chat(history=history or [])
+            response = await chat.send_message_async(message)
+            return response.text
         except Exception as e:
-            error_str = str(e)
-            print(f"Gemini Chatbot Error: {error_str}")
-            if "429" in error_str or "quota" in error_str.lower():
-                return "AI Quota Exceeded. Please wait a moment or upgrade your API tier."
-            return "I'm currently having trouble connecting to my neural network. Please try again in a moment."
+            print(f"Gemini Error (Chat): {e}")
+            return "AI temporarily unavailable. Our neural link is currently undergoing maintenance. Please try again in 60 seconds."
 
     @staticmethod
     async def summarize_discussion(messages: list):
         if not messages:
             return "No discussion yet."
         try:
-            model = genai.GenerativeModel('gemini-flash-latest')
-            messages_text = "\n".join([f"{m['author']}: {m['content']}" for m in messages])
+            model = genai.GenerativeModel(Config.GEMINI_MODEL)
+            messages_text = "\n".join([f"{m.get('author', 'User')}: {m.get('content', '')}" for m in messages])
             prompt = f"""
             Summarize the following healthcare collaboration discussion:
             
@@ -122,121 +100,65 @@ class GeminiService:
 
     @staticmethod
     async def get_suggestions(text: str, context: str):
+        prompt = f"Provide 5 short medical search suggestions for context: {context} starting with: {text}. Return only a list of strings."
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash-8b') # Use lightest model for suggestions
+            model = genai.GenerativeModel(Config.GEMINI_MODEL)
+            response = await model.generate_content_async(prompt)
+            # Basic parsing of list-like response
+            suggestions = [s.strip('- ').strip('12345. ') for s in response.text.split('\n') if s.strip()]
+            return [s for s in suggestions if s][:5]
+        except Exception as e:
+            print(f"Gemini Error (Suggestions): {e}")
+            return ["AI temporarily unavailable"]
+
+    @staticmethod
+    async def extract_text_from_media(content: bytes, mime_type: str):
+        """
+        Extracts text from images or PDFs using Gemini's multimodal capabilities.
+        """
+        try:
+            model = genai.GenerativeModel(Config.GEMINI_MODEL)
             
-            context_description = "healthcare innovation problem title"
-            if context == "dataset_search":
-                context_description = "medical dataset search query"
-            elif context == "idea_generator":
-                context_description = "healthcare startup idea title"
-            
-            prompt = f"""
-            User is typing a {context_description}.
-            Typed text: "{text}"
-            
-            Generate 5 short suggestions related to this context.
-            Rules:
-            • suggestions must be concise
-            • each suggestion must be one line
-            • maximum 10 words
-            • return only suggestions
-            • do not include numbers or explanations
+            prompt = """
+            You are a professional medical document digitizer. 
+            Extract ALL readable text from this document as accurately as possible.
+            If this is a table, preserve the row/column structure using spaces or tabs.
+            Ignore visual noise, signatures (just note "[Signature]"), and stamps.
+            Return ONLY the extracted text.
             """
             
-            response = await model.generate_content_async(prompt)
-            if not response.text:
-                print("Gemini returned empty response for suggestions.")
-                return []
-                
-            suggestions = [line.strip().replace('• ', '').replace('- ', '') for line in response.text.split('\n') if line.strip()]
-            return suggestions[:5]
+            # Prepare the media part
+            media_part = {
+                "mime_type": mime_type,
+                "data": content
+            }
+            
+            response = await model.generate_content_async([prompt, media_part])
+            return response.text.strip()
         except Exception as e:
-            print(f"Gemini Suggestions Error: {e}")
-            return []
+            print(f"Gemini OCR Error: {e}")
+            return ""
 
     @staticmethod
     async def analyze_medical_document(text: str):
+        prompt = f"""
+        Analyze this medical document text and provide a structured report with these exact sections:
+        
+        1. CLAIM SUMMARY: A concise summary of the medical claim.
+        2. SCIENTIFIC VALIDITY: Assessment of whether the claim aligns with established medical science.
+        3. EVIDENCE LEVEL: Classification of evidence (e.g., High, Moderate, Low, or Anecdotal).
+        4. POSSIBLE RISKS: Any health risks or complications associated with the claim or condition.
+        5. RECOMMENDATION: Clear, actionable medical recommendation or next steps.
+
+        Document Text:
+        {text}
+        
+        Format the response with the section headers in ALL CAPS followed by a colon.
+        """
         try:
-            model = genai.GenerativeModel('gemini-flash-latest')
-            prompt = f"""
-            Act as a medical document analyst. Analyze the following medical report text and provide:
-            1. A structured NLP report (summary, key findings, and recommendations).
-            2. A medical similarity score (0-100) compared to millions of standard medical records and research papers (simulated).
-            3. An AI writing probability (0-100) indicating the likelihood that this text was generated by an AI.
-
-            Text: {text[:5000]}
-
-            Format the response in JSON with these keys:
-            - nlp_report: {{ "summary": string, "findings": [string], "recommendations": [string] }}
-            - medical_similarity: number
-            - ai_writing_score: number
-            """
-            
+            model = genai.GenerativeModel(Config.GEMINI_MODEL)
             response = await model.generate_content_async(prompt)
-            result_text = response.text.replace('```json', '').replace('```', '').strip()
-            return json.loads(result_text)
+            return response.text
         except Exception as e:
-            print(f"Gemini analyze_medical_document Error: {e}")
-            return {
-                "nlp_report": {
-                    "summary": "Error analyzing document.",
-                    "findings": [],
-                    "recommendations": []
-                },
-                "medical_similarity": 0,
-                "ai_writing_score": 0
-            }
-
-    @staticmethod
-    async def detect_outbreaks(reports: list):
-        if not reports:
-            return None
-        try:
-            model = genai.GenerativeModel('gemini-flash-latest')
-            reports_text = "\n".join([f"- Disease: {r['disease_name']}, Lat: {r['latitude']}, Lng: {r['longitude']}, Time: {r.get('timestamp')}" for r in reports])
-            prompt = f"""
-            Act as an Epidemiologist and Public Health Analyst. 
-            Analyze the following recent disease reports and detect potential outbreaks or clusters.
-            
-            Reports:
-            {reports_text}
-            
-            Rules:
-            - An outbreak is suspected if there's a localized cluster of similar reports (e.g., 5+ reports in a small area).
-            - Identify the disease name, approximate location (description), and report count.
-            - Provide a short, urgent alert message if an outbreak is likely.
-            
-            Format response in JSON:
-            {{
-                "outbreak_detected": boolean,
-                "disease": string or null,
-                "location": string or null,
-                "report_count": number or null,
-                "alert_message": string or null
-            }}
-            """
-            
-            response = await model.generate_content_async(prompt)
-            text = response.text.replace('```json', '').replace('```', '').strip()
-            return json.loads(text)
-        except Exception as e:
-            print(f"Gemini detect_outbreaks Error: {e}")
-            return None
-
-    @staticmethod
-    async def suggest_diseases(partial_name: str):
-        try:
-            model = genai.GenerativeModel('gemini-flash-latest')
-            prompt = f"""
-            User is reporting a disease and typed: "{partial_name}".
-            Suggest 5 common medical disease names that start with or are relevant to this text.
-            Return ONLY a comma-separated list of names. No numbers, no extra text.
-            """
-            
-            response = await model.generate_content_async(prompt)
-            suggestions = [s.strip() for s in response.text.split(',') if s.strip()]
-            return suggestions[:5]
-        except Exception as e:
-            print(f"Gemini suggest_diseases Error: {e}")
-            return []
+            print(f"Gemini Error (Analyze): {e}")
+            return "AI temporarily unavailable. Our neural link is currently undergoing maintenance. Please try again in 60 seconds."

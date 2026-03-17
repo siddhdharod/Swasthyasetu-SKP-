@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Send, Sparkles, BrainCircuit, Target, ArrowRight, Activity, Cpu, ShieldCheck } from 'lucide-react';
-import axios from 'axios';
+import api from '../../api/instance';
+import { FlaskConical, Sparkles, Plus, Search, Activity, Zap, TrendingUp, AlertCircle, Loader2, Target, Send, ArrowRight, Cpu, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import AIAutocompleteInput from '../../components/AIAutocompleteInput';
-
-const API_BASE = 'http://localhost:8000/api/problems';
 
 export default function ProblemHub() {
   const { theme } = useTheme();
@@ -21,7 +19,7 @@ export default function ProblemHub() {
 
   const fetchProblems = async () => {
     try {
-      const res = await axios.get(API_BASE);
+      const res = await api.get('/problems');
       setProblems(res.data);
     } catch (err) {
       console.error(err);
@@ -30,19 +28,22 @@ export default function ProblemHub() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreateProblem = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await axios.post(API_BASE, { title, description });
-      setProblems([res.data, ...problems]); // Immediate state update
+      const response = await api.post('/problems', {
+        title,
+        description,
+        difficulty: "Strategic"
+      });
+      setProblems([response.data, ...problems]); // Immediate state update
       setTitle('');
       setDescription('');
     } catch (err) {
       console.error(err);
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   const glassClass = theme === 'dark' ? 'glass-dark' : 'glass-light';
@@ -74,7 +75,7 @@ export default function ProblemHub() {
           
           <h2 className="text-[20px] font-black tracking-tight mb-8">Submit Challenge</h2>
           
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleCreateProblem} className="space-y-8">
             <div className="space-y-3">
               <label className="text-[14px] font-black uppercase tracking-widest text-slate-500 ml-1">Problem Title</label>
               <AIAutocompleteInput 
@@ -83,7 +84,7 @@ export default function ProblemHub() {
                 context="problem_title"
                 placeholder="e.g., Rural Diagnostic Latency"
                 required
-                className={`w-full bg-white/5 dark:bg-black/20 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50 shadow-sm'} rounded-2xl p-5 text-[16px] outline-none transition-all font-bold`}
+                className={`w-full bg-white/5 dark:bg-white/5 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50 shadow-sm'} rounded-2xl p-5 text-[16px] outline-none transition-all font-bold`}
               />
             </div>
 
@@ -94,7 +95,7 @@ export default function ProblemHub() {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={5}
                 placeholder="Describe the clinical bottleneck in detail..."
-                className={`w-full bg-white/5 dark:bg-black/20 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50 shadow-sm'} rounded-2xl p-5 text-[16px] outline-none transition-all font-bold resize-none`}
+                className={`w-full bg-white/5 dark:bg-white/5 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50 shadow-sm'} rounded-2xl p-5 text-[16px] outline-none transition-all font-bold resize-none`}
                 required
               />
             </div>

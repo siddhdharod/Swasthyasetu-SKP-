@@ -16,7 +16,9 @@ def create_access_token(data: dict):
 def decode_access_token(token: str):
     try:
         payload = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=[Config.JWT_ALGORITHM])
-        return payload if payload["exp"] >= datetime.datetime.utcnow().timestamp() else None
+        if payload["exp"] < datetime.datetime.utcnow().timestamp():
+            raise HTTPException(status_code=401, detail="Token expired")
+        return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:

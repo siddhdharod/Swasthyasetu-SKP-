@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import api from '../api/instance';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ShieldCheck, Loader2, ArrowRight, Lock, CheckCircle2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -20,7 +20,7 @@ export default function ForgotPassword() {
     setLoading(true);
     setMessage('');
     try {
-      await axios.post('http://localhost:8000/api/auth/forgot-password', { email });
+      await api.post('/auth/forgot-password', { email });
       setStep(2);
       setMessage('A reset code has been transmitted.');
     } catch (err: any) {
@@ -34,8 +34,8 @@ export default function ForgotPassword() {
     setLoading(true);
     setMessage('');
     try {
-      await axios.post('http://localhost:8000/api/auth/reset-password', { email, otp, new_password: newPassword });
-      setMessage('Security credentials updated. Redirecting...');
+      await api.post('/auth/reset-password', { email, otp, new_password: newPassword });
+      setMessage('Security credentials updated. Redirecting to login terminal...');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err: any) {
       setMessage(err.response?.data?.detail || 'Reset failed.');
@@ -86,7 +86,7 @@ export default function ForgotPassword() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="sid@mesh.io"
-                    className="w-full bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl py-4 pl-11 pr-4 outline-none focus:ring-2 ring-primary-light transition-all font-bold text-sm"
+                    className="w-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl py-4 pl-11 pr-4 outline-none focus:ring-2 ring-primary-light transition-all font-bold text-sm"
                   />
                 </div>
               </div>
@@ -110,7 +110,7 @@ export default function ForgotPassword() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     placeholder="000000"
-                    className="w-full bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl py-4 text-center text-2xl font-black outline-none tracking-widest focus:ring-2 ring-primary-light transition-all"
+                    className="w-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl py-4 text-center text-2xl font-black outline-none tracking-widest focus:ring-2 ring-primary-light transition-all"
                   />
                 </div>
                 <div className="space-y-2">
@@ -123,7 +123,7 @@ export default function ForgotPassword() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl py-4 pl-11 pr-4 outline-none focus:ring-2 ring-primary-light transition-all font-bold text-sm"
+                      className="w-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl py-4 pl-11 pr-4 outline-none focus:ring-2 ring-primary-light transition-all font-bold text-sm"
                     />
                   </div>
                 </div>

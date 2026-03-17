@@ -18,6 +18,7 @@ class RegisterRequest(BaseModel):
     age: int
     gender: str
     password: str
+    role: str = "patient" # patient or doctor
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -73,6 +74,7 @@ async def register(request: RegisterRequest, background_tasks: BackgroundTasks):
             "phone": request.phone,
             "age": request.age,
             "gender": request.gender,
+            "role": request.role,
             "password_hash": hash_password(request.password)
         }
     }
@@ -104,6 +106,7 @@ async def verify_otp(request: VerifyOTPRequest, response: Response):
     user_doc = {
         "email": request.email,
         "password_hash": user_data["password_hash"],
+        "role": user_data.get("role", "patient"),
         "created_at": time.time()
     }
     await users_collection.insert_one(user_doc)
@@ -143,7 +146,8 @@ async def login(request: LoginRequest, response: Response):
     profile = await profile_collection.find_one({"email": request.email})
     name = profile["name"] if profile else request.email.split("@")[0]
     
-    token = create_access_token({"sub": request.email, "name": name})
+    role = user.get("role", "patient")
+    token = create_access_token({"sub": request.email, "name": name, "role": role})
     
     response.set_cookie(
         key="access_token",
@@ -156,7 +160,14 @@ async def login(request: LoginRequest, response: Response):
         path="/"
     )
     
-    return {"message": "Neural link established.", "name": name}
+    return {
+        "message": "Neural link established.",
+        "name": name,
+        "email": request.email,
+        "role": role,
+        "user_id": str(user["_id"]),
+        "token": token
+    }
 
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):

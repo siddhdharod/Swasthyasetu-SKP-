@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Body
-from services.gemini_service import GeminiService
+from services.ai_service import AIService
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -10,5 +10,5 @@ class SuggestionRequest(BaseModel):
 
 @router.post("/")
 async def get_suggestions(request: SuggestionRequest):
-    suggestions = await GeminiService.get_suggestions(request.text, request.context)
+    suggestions = await AIService.generate_suggestions(request.text, request.context)
     return {"suggestions": suggestions}

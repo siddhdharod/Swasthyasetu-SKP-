@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState } from 'react';
+import api from '../api/instance';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
-import { Mail, ShieldCheck, Loader2, ArrowRight, Lock, Sparkles, CheckCircle2, User } from 'lucide-react';
+import { Mail, Lock, Sparkles, Loader2, ArrowRight, ShieldCheck, User, AlertCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -17,16 +17,8 @@ export default function Login() {
 
   const Blobs = () => (
     <div className="absolute inset-0 overflow-hidden -z-10 pointer-events-none">
-      <motion.div 
-        animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, 30, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-        className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-light/10 blur-[100px] rounded-full" 
-      />
-      <motion.div 
-        animate={{ scale: [1.2, 1, 1.2], x: [0, -50, 0], y: [0, -30, 0] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-        className={`absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] ${theme === 'dark' ? 'bg-cyan-500/5' : 'bg-purple-500/5'} blur-[100px] rounded-full`} 
-      />
+      <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-blue-500/5 blur-[120px] rounded-full" />
+      <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-teal-500/5 blur-[120px] rounded-full" />
     </div>
   );
 
@@ -35,9 +27,19 @@ export default function Login() {
     setLoading(true);
     setMessage('');
     try {
-      const res = await axios.post('http://localhost:8000/api/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
+      
+      const { name, role, token } = response.data;
+      localStorage.setItem("userName", name);
+      localStorage.setItem("userRole", role);
+      localStorage.setItem("token", token);
       login();
-      navigate('/');
+      
+      if (role === 'doctor') {
+        navigate('/doctor');
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       setMessage(err.response?.data?.detail || 'Authentication failed. Please check your credentials.');
     }
@@ -45,85 +47,81 @@ export default function Login() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center p-6 relative ${theme === 'dark' ? 'dark bg-[#050810] text-white' : 'bg-[#FFF8F0] text-slate-800'}`}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-500">
       <Blobs />
       
-      <button 
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        className="absolute top-8 right-8 p-3 glass-light dark:glass-dark rounded-2xl hover:scale-110 transition-all z-50 text-slate-500"
-      >
-        {theme === 'dark' ? <Sparkles size={20} className="text-cyan-400" /> : <Lock size={20} className="text-primary-light" />}
-      </button>
-
-      <div className="w-full max-w-xl grid lg:grid-cols-1 gap-12 items-center">
-        <div className="text-center space-y-6">
-          <div className="inline-flex items-center space-x-2 bg-primary-gradient/10 px-4 py-2 rounded-full border border-primary-light/20 text-primary-light text-[10px] font-black uppercase tracking-[0.2em] mx-auto">
-            <Lock size={12} />
-            <span>Biometric AI Mesh</span>
-          </div>
-          <h1 className="text-6xl font-black tracking-tighter leading-none">
+      <div className="w-full max-w-xl space-y-8">
+        <div className="text-center space-y-4">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center space-x-2 bg-blue-500/10 px-4 py-2 rounded-full border border-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mx-auto"
+          >
+            <ShieldCheck size={12} />
+            <span>Secure Clinical Access</span>
+          </motion.div>
+          <h1 className="text-5xl font-extrabold tracking-tight">
             SwasthyaSetu <span className={theme === 'dark' ? 'gradient-text-dark' : 'gradient-text-light'}>AI</span>
           </h1>
+          <p className="text-slate-500 font-medium">Professional Healthcare Intelligence Dashboard</p>
         </div>
 
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="glass-light dark:glass-dark p-10 space-y-8 relative overflow-hidden backdrop-blur-3xl shadow-2xl border-white/20"
+          className="premium-card p-10 space-y-8 relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary-gradient/5 blur-3xl -mr-16 -mt-16" />
-          
-          <div className="space-y-2">
-            <h2 className="text-3xl font-black tracking-tight">Access Vault</h2>
-            <p className="text-slate-500 font-bold text-xs uppercase tracking-widest leading-relaxed">
-              Authenticate via encrypted neural link to proceed
+          <div className="space-y-1">
+            <h2 className="text-3xl font-bold tracking-tight">Login</h2>
+            <p className="text-slate-400 font-medium text-sm">
+              Enter your credentials to access your clinical workspace.
             </p>
           </div>
 
           <AnimatePresence mode="wait">
             {message && (
               <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className={`flex items-start space-x-3 p-4 rounded-2xl border text-xs font-bold bg-red-500/10 text-red-500 border-red-500/20`}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="flex items-start space-x-3 p-4 rounded-2xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 text-xs font-bold"
               >
-                <ShieldCheck size={16} className="mt-0.5" />
+                <AlertCircle size={16} className="mt-0.5" />
                 <span>{message}</span>
               </motion.div>
             )}
           </AnimatePresence>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Identity Channel</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60 ml-1">Email Address</label>
               <div className="relative group">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-light transition-colors" size={20} />
+                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent-primary)] transition-colors" size={20} />
                 <input 
                   type="email" 
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@workstation.io"
-                  className="w-full bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl py-5 pl-14 pr-6 outline-none focus:ring-2 ring-primary-light transition-all text-lg font-bold"
+                  placeholder="name@hospital.com"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-2xl py-5 pl-14 pr-6 outline-none focus:ring-4 ring-[var(--accent-primary)]/5 focus:border-[var(--accent-primary)]/50 transition-all text-lg font-bold text-[var(--text-primary)]"
                 />
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Security Phrase</label>
-                <Link to="/forgot-password" className="text-[10px] font-black uppercase tracking-widest text-primary-light hover:underline">Forgot?</Link>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Password</label>
+                <Link to="/forgot-password" university-block className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-primary)] hover:underline">Reset?</Link>
               </div>
               <div className="relative group">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-light transition-colors" size={20} />
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent-primary)] transition-colors" size={20} />
                 <input 
                   type="password" 
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl py-5 pl-14 pr-6 outline-none focus:ring-2 ring-primary-light transition-all text-lg font-bold"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-2xl py-5 pl-14 pr-6 outline-none focus:ring-4 ring-[var(--accent-primary)]/5 focus:border-[var(--accent-primary)]/50 transition-all text-lg font-bold text-[var(--text-primary)]"
                 />
               </div>
             </div>
@@ -131,22 +129,22 @@ export default function Login() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full bg-primary-gradient text-white flex items-center justify-center space-x-3 py-5 rounded-2xl text-lg font-black shadow-xl shadow-primary-light/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+              className="w-full bg-[var(--accent-primary)] text-white flex items-center justify-center space-x-3 py-5 rounded-2xl text-lg font-bold shadow-xl shadow-blue-500/20 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {loading ? <Loader2 className="animate-spin" size={24} /> : <ArrowRight size={24} />}
-              <span>AUTHORIZE IDENTITY</span>
+              <span className="uppercase tracking-widest text-sm">Proceed to Dashboard</span>
             </button>
           </form>
 
           <div className="text-center pt-4">
-             <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">
-               New to the mesh? <Link to="/register" className="text-primary-light hover:underline ml-2">Initiate Enrollment</Link>
+             <p className="text-[var(--text-secondary)] font-bold text-xs uppercase tracking-widest opacity-60">
+               New here? <Link to="/register" className="text-[var(--accent-primary)] hover:underline ml-2">Initialize Protocol</Link>
              </p>
           </div>
 
-          <div className="pt-8 border-t border-white/10 flex items-center justify-between">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-              Secured by <span className="text-primary-light">SwasthyaNet Protocol</span>
+          <div className="pt-8 border-t border-[var(--border-main)] text-center">
+            <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.3em] opacity-40">
+              Validated by HealthNet Security
             </p>
           </div>
         </motion.div>

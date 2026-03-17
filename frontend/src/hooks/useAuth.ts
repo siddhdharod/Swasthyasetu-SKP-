@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-
-// Configure axios defaults for all requests
-axios.defaults.withCredentials = true;
+import api from '../api/instance';
 
 export const useAuth = () => {
   const [user, setUser] = useState<{ email: string, name?: string } | null>(null);
@@ -10,7 +7,7 @@ export const useAuth = () => {
 
   const checkAuth = useCallback(async () => {
     try {
-      const resp = await axios.get('http://localhost:8000/api/auth/me');
+      const resp = await api.get('/auth/me');
       setUser(resp.data);
     } catch (e) {
       setUser(null);
@@ -29,10 +26,13 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
-      await axios.post('http://localhost:8000/api/auth/logout');
+      await api.post('/auth/logout');
     } catch (e) {
       console.error("Logout failed", e);
     } finally {
+      localStorage.removeItem("userName");
+      localStorage.setItem("userRole", "");
+      localStorage.removeItem("token");
       setUser(null);
     }
   };

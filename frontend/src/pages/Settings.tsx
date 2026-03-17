@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { User, ShieldAlert, Save, Loader2, HeartPulse, UserCircle, Droplets, Calendar, Smartphone, PlusCircle, Activity, Mail, Hash } from 'lucide-react';
+import api from '../api/instance';
+import { User, ShieldAlert, Save, Loader2, HeartPulse, UserCircle, Droplets, Calendar, Smartphone, PlusCircle, Activity, Mail, Hash, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 
@@ -28,7 +28,7 @@ export default function Settings() {
 
   const fetchProfile = async () => {
     try {
-      const resp = await axios.get('http://localhost:8000/api/profile/');
+      const resp = await api.get('/profile/');
       if (resp.data.name) setProfile({ ...profile, ...resp.data });
     } catch (err) {
       console.error(err);
@@ -41,7 +41,7 @@ export default function Settings() {
     e.preventDefault();
     setSaving(true);
     try {
-      await axios.put('http://localhost:8000/api/profile/', profile);
+      await api.put('/profile/', profile);
       alert('Profile updated successfully');
     } catch (err) {
       console.error(err);
@@ -54,73 +54,89 @@ export default function Settings() {
   // ... (loading state)
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h2 className="text-4xl font-black gradient-text-dark mb-2">Account Settings</h2>
-          <p className="text-slate-400">Manage your clinical profile and experimental preferences.</p>
+    <div className="max-w-6xl mx-auto space-y-10 py-4 pb-20">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+        <div className="space-y-2">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center space-x-2 text-blue-600 bg-blue-50 dark:bg-blue-500/10 px-4 py-1.5 rounded-full w-fit text-[10px] font-black uppercase tracking-[0.2em] border border-blue-100 dark:border-blue-500/20"
+          >
+            <ShieldCheck size={14} />
+            <span>Profile Configuration Engine</span>
+          </motion.div>
+          <h2 className="text-5xl font-extrabold tracking-tight">
+            Account <span className={theme === 'dark' ? 'gradient-text-dark' : 'gradient-text-light'}>Settings</span>
+          </h2>
+          <p className="text-slate-500 font-medium">Manage clinical identifiers and personalized health parameters.</p>
         </div>
+        
         <button 
           onClick={handleSubmit}
           disabled={saving}
-          className="btn-primary-dark px-10 flex items-center space-x-2"
+          className="flex items-center space-x-3 bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold shadow-xl shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all text-sm uppercase tracking-widest disabled:opacity-50"
         >
-          {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-          <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
+          {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+          <span>{saving ? 'Synchronizing...' : 'Save Protocol'}</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-3 space-y-8">
           {/* Identity Section */}
-          <section className="glass-dark p-8 space-y-6">
-             <div className="flex items-center space-x-3 text-cyan-400 mb-2">
-                <User size={20} />
-                <h3 className="font-black uppercase tracking-widest text-sm">Identity Core</h3>
+          <section className="premium-card p-8 space-y-8">
+             <div className="flex items-center space-x-4">
+                <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-2xl text-[var(--accent-primary)] shadow-inner">
+                   <User size={24} />
+                </div>
+                <div>
+                   <h3 className="text-xl font-extrabold text-[var(--text-primary)]">Core Identity</h3>
+                   <p className="text-xs text-[var(--text-secondary)] font-bold opacity-60">Verify and update your primary clinical markers.</p>
+                </div>
              </div>
              
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Legal Name</label>
+                   <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest px-1 opacity-60">Legal Full Identity</label>
                    <input 
                      value={profile.name}
                      onChange={(e) => setProfile({...profile, name: e.target.value})}
-                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50"
+                     className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-2xl px-5 py-4 outline-none focus:border-[var(--accent-primary)] focus:ring-4 ring-[var(--accent-primary)]/5 transition-all font-bold text-[var(--text-primary)]"
                    />
                 </div>
                 <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Mobile Access</label>
+                   <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest px-1 opacity-60">Verified Mobile Link</label>
                    <input 
                      value={profile.mobile}
                      onChange={(e) => setProfile({...profile, mobile: e.target.value})}
-                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50"
+                     className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-2xl px-5 py-4 outline-none focus:border-[var(--accent-primary)] focus:ring-4 ring-[var(--accent-primary)]/5 transition-all font-bold text-[var(--text-primary)]"
                    />
                 </div>
                 <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Date of Birth</label>
+                   <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest px-1 opacity-60">Chronological Date of Birth</label>
                    <input 
                      type="date"
                      value={profile.dob}
                      onChange={(e) => setProfile({...profile, dob: e.target.value})}
-                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50"
+                     className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-2xl px-5 py-4 outline-none focus:border-[var(--accent-primary)] focus:ring-4 ring-[var(--accent-primary)]/5 transition-all font-bold text-[var(--text-primary)]"
                    />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Age</label>
+                     <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest px-1 opacity-60">Age Cycle</label>
                      <input 
                        type="number"
                        value={profile.age}
                        onChange={(e) => setProfile({...profile, age: parseInt(e.target.value) || 0})}
-                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50"
+                       className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-2xl px-5 py-4 outline-none focus:border-[var(--accent-primary)] focus:ring-4 ring-[var(--accent-primary)]/5 transition-all font-bold text-[var(--text-primary)]"
                      />
                   </div>
                   <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Gender</label>
+                     <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest px-1 opacity-60">Gender Class</label>
                      <select 
                        value={profile.gender}
                        onChange={(e) => setProfile({...profile, gender: e.target.value})}
-                       className="w-full bg-[#050810] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50"
+                       className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-2xl px-5 py-4 outline-none focus:border-[var(--accent-primary)] focus:ring-4 ring-[var(--accent-primary)]/5 transition-all font-bold text-[var(--text-primary)] appearance-none"
                      >
                        <option value="Male">Male</option>
                        <option value="Female">Female</option>
@@ -131,100 +147,90 @@ export default function Settings() {
              </div>
           </section>
 
-          {/* Medical Records Section */}
-          <section className="glass-dark p-8 space-y-6">
-             <div className="flex items-center space-x-3 text-red-400 mb-2">
-                <HeartPulse size={20} />
-                <h3 className="font-black uppercase tracking-widest text-sm">Medical Matrix</h3>
+          {/* Medical Matrix Section */}
+          <section className="premium-card p-8 space-y-8">
+             <div className="flex items-center space-x-4">
+                <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-2xl text-rose-500 shadow-inner">
+                   <HeartPulse size={24} />
+                </div>
+                <div>
+                   <h3 className="text-xl font-extrabold text-[var(--text-primary)]">Pathological Matrix</h3>
+                   <p className="text-xs text-[var(--text-secondary)] font-bold opacity-60">Detailed medical disclosures for high-fidelity AI diagnostics.</p>
+                </div>
              </div>
              
-             <div className="space-y-6">
+             <div className="space-y-8">
                 <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Allergies</label>
+                   <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest px-1 opacity-60">Verified Critical Allergies</label>
                    <textarea 
                      value={profile.allergies}
                      onChange={(e) => setProfile({...profile, allergies: e.target.value})}
-                     placeholder="List any known allergies..."
-                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50 h-24 resize-none"
+                     placeholder="List accurately for emergency safety..."
+                     className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-[1.5rem] px-5 py-4 outline-none focus:border-[var(--accent-primary)] focus:ring-4 ring-[var(--accent-primary)]/5 transition-all font-bold text-[var(--text-primary)] h-28 resize-none"
                    />
                 </div>
                 <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Chronic Diseases</label>
+                   <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest px-1 opacity-60">Chronic Physiological conditions</label>
                    <textarea 
                      value={profile.diseases}
                      onChange={(e) => setProfile({...profile, diseases: e.target.value})}
-                     placeholder="Diabetes, Hypertension, etc..."
-                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50 h-24 resize-none"
+                     placeholder="e.g. Type 2 Diabetes, Hypertension..."
+                     className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-[1.5rem] px-5 py-4 outline-none focus:border-[var(--accent-primary)] focus:ring-4 ring-[var(--accent-primary)]/5 transition-all font-bold text-[var(--text-primary)] h-28 resize-none"
                    />
                 </div>
                 <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Current Medications</label>
+                   <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest px-1 opacity-60">Active Neural/Pharma Protocols</label>
                    <textarea 
                      value={profile.medications}
                      onChange={(e) => setProfile({...profile, medications: e.target.value})}
-                     placeholder="Dosage and frequency..."
-                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50 h-24 resize-none"
-                   />
-                </div>
-             </div>
-          </section>
-
-          {/* Emergency Disclosure Section */}
-          <section className="glass-dark p-8 space-y-6">
-             <div className="flex items-center space-x-3 text-purple-400 mb-2">
-                <ShieldAlert size={20} />
-                <h3 className="font-black uppercase tracking-widest text-sm">Emergency Disclosure</h3>
-             </div>
-             
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Blood Group</label>
-                   <select 
-                     value={profile.blood_group}
-                     onChange={(e) => setProfile({...profile, blood_group: e.target.value})}
-                     className="w-full bg-[#050810] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50"
-                   >
-                     <option value="">Select Group</option>
-                     {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => (
-                       <option key={bg} value={bg}>{bg}</option>
-                     ))}
-                   </select>
-                </div>
-                <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Emergency Contact</label>
-                   <input 
-                     value={profile.emergency_contact}
-                     onChange={(e) => setProfile({...profile, emergency_contact: e.target.value})}
-                     placeholder="Phone number / Name"
-                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-cyan-500/50"
+                     placeholder="Specify dosages and clinical schedules..."
+                     className="w-full bg-[var(--bg-primary)] border border-[var(--border-main)] rounded-[1.5rem] px-5 py-4 outline-none focus:border-[var(--accent-primary)] focus:ring-4 ring-[var(--accent-primary)]/5 transition-all font-bold text-[var(--text-primary)] h-28 resize-none"
                    />
                 </div>
              </div>
           </section>
         </div>
 
-        {/* Sidebar Mini Profile ... same as before but uses name/age/blood_group) */}
-        <div className="space-y-8">
-           <div className="glass-dark p-8 text-center space-y-6 relative overflow-hidden group">
-              <div className="mx-auto w-24 h-24 rounded-3xl bg-primary-gradient p-[1px]">
-                 <div className="w-full h-full rounded-[23px] bg-[#050810] flex items-center justify-center">
-                    <UserCircle size={48} className="text-white" />
+        {/* Action Sidebar */}
+        <div className="lg:col-span-1 space-y-8">
+           <div className="premium-card p-8 text-center space-y-6 relative overflow-hidden group h-fit">
+              <div className="mx-auto w-24 h-24 rounded-[2rem] bg-[var(--accent-primary)] p-[1px] relative">
+                 <div className="w-full h-full rounded-[1.95rem] bg-[var(--bg-card)] flex items-center justify-center">
+                    <UserCircle size={48} className="text-[var(--accent-primary)]" />
+                 </div>
+                 <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-teal-500 rounded-xl border-4 border-[var(--bg-card)] flex items-center justify-center text-white">
+                    <ShieldCheck size={14} />
                  </div>
               </div>
               <div>
-                <h3 className="text-xl font-bold">{profile.name || 'Secure User'}</h3>
-                <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-1">Patient Protocol Active</p>
+                <h3 className="text-xl font-extrabold text-[var(--text-primary)]">{profile.name || 'Anonymous User'}</h3>
+                <p className="text-[10px] text-[var(--accent-primary)] font-black uppercase tracking-[0.2em] mt-2">Validated Patient Protocol</p>
               </div>
-              <div className="flex justify-center space-x-6 pt-6 border-t border-white/5">
-                 <div className="text-center">
-                    <p className="text-[8px] text-slate-500 uppercase font-black">Age</p>
-                    <p className="font-bold text-lg text-slate-300">{profile.age || '--'}</p>
+              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-[var(--border-main)]">
+                 <div className="bg-[var(--bg-primary)] p-3 rounded-2xl border border-[var(--border-main)]">
+                    <p className="text-[8px] text-[var(--text-secondary)] uppercase font-black tracking-widest mb-1 opacity-60">Blood Type</p>
+                    <p className="font-extrabold text-lg text-[var(--text-primary)] uppercase">{profile.blood_group || '--'}</p>
                  </div>
-                 <div className="text-center">
-                    <p className="text-[8px] text-slate-500 uppercase font-black">Type</p>
-                    <p className="font-bold text-lg text-slate-300">{profile.blood_group || '--'}</p>
+                 <div className="bg-[var(--bg-primary)] p-3 rounded-2xl border border-[var(--border-main)]">
+                    <p className="text-[8px] text-[var(--text-secondary)] uppercase font-black tracking-widest mb-1 opacity-60">Lifecycle</p>
+                    <p className="font-extrabold text-lg text-[var(--text-primary)] uppercase">{profile.age || '--'} YRS</p>
                  </div>
               </div>
+              
+              <div className="pt-4">
+                 <div className="p-4 bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-main)] shadow-inner">
+                    <p className="text-[10px] text-[var(--accent-primary)] leading-relaxed font-bold italic">
+                       Profile synchronization status: <span className="text-teal-600 font-black uppercase">Active</span>
+                    </p>
+                 </div>
+              </div>
+           </div>
+
+           <div className="p-8 bg-gradient-to-br from-blue-600 to-teal-600 rounded-[2.5rem] text-white shadow-xl shadow-blue-500/20">
+              <h4 className="font-bold mb-2">Clinical Data Policy</h4>
+              <p className="text-xs opacity-80 leading-relaxed font-medium">
+                 Your clinical data is end-to-end encrypted and used only to power relevant health insights within this dashboard.
+              </p>
            </div>
         </div>
       </div>

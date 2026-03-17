@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
-from database import db, profile_collection
+from database import db, profile_collection, datasets_collection
 from utils.jwt_handler import get_current_user
-from services.gemini_service import GeminiService
+from services.ai_service import AIService
 from bson import ObjectId
 import time
 
@@ -51,7 +51,7 @@ async def add_idea(id: str, payload: dict = Body(...), user: dict = Depends(get_
     
     if type == "ai":
         problem_text = payload.get("problem_text")
-        ideas = await GeminiService.generate_ideas(problem_text)
+        ideas = await AIService.generate_ideas(problem_text)
         for i in ideas:
             i["problem_id"] = id
             i["type"] = "ai"
@@ -107,5 +107,31 @@ async def get_messages(id: str):
 @router.get("/{id}/summary")
 async def get_summary(id: str):
     msgs = await db.messages.find({"problem_id": id}).to_list(50)
-    summary = await GeminiService.summarize_discussion(msgs)
+    summary = await AIService.chatbot_response(f"Summarize this discussion: {msgs}") # Reusing chatbot for summary
     return {"summary": summary}
+
+# Datasets
+@router.post("/datasets")
+async def add_dataset(payload: dict = Body(...), user: dict = Depends(get_current_user)):
+    user_name = await get_user_name(user)
+    dataset = {
+        "title": payload.get("title"),
+        "description": payload.get("description"),
+        "url": payload.get("link"),
+        "category": payload.get("category", "Community"),
+        "source": user_name,
+        "email": user.get("sub"),
+        "createdAt": int(time.time()),
+        "color": payload.get("color", "blue")
+    }
+    res = await datasets_collection.insert_one(dataset)
+    dataset["id"] = str(res.inserted_id)
+    return dataset
+
+@router.get("/datasets/list")
+async def list_datasets():
+    datasets = await datasets_collection.find().sort("createdAt", -1).to_list(100)
+    for ds in datasets:
+        ds["id"] = str(ds["_id"])
+        del ds["_id"]
+    return datasets

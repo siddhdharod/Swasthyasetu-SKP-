@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, AlertTriangle, Search, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import api from '../../api/instance';
 
 interface Props {
   isOpen: boolean;
@@ -24,7 +24,7 @@ const ReportDiseaseModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => 
         return;
       }
       try {
-        const res = await axios.get(`http://localhost:8000/api/diseases/suggestions?q=${diseaseName}`);
+        const res = await api.get(`/diseases/suggestions?q=${diseaseName}`);
         setSuggestions(res.data.suggestions);
       } catch (err) {
         console.error("Suggestions error:", err);
@@ -41,27 +41,38 @@ const ReportDiseaseModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => 
 
     setIsSubmitting(true);
     setError('');
-    try {
-      await axios.post('http://localhost:8000/api/diseases/report', {
-        disease_name: diseaseName,
-        description,
-        severity
-      }, { withCredentials: true });
-      onSuccess();
-      onClose();
-      setDiseaseName('');
-      setDescription('');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to submit report. Please ensure location is enabled.");
-    } finally {
+    
+    // Get precise location for report
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        await api.post('/diseases/report-disease', {
+          disease_name: diseaseName,
+          description,
+          severity,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        });
+        
+        onSuccess();
+        alert("Success: Disease report submitted"); // Simple toast alternative
+        onClose();
+        setDiseaseName('');
+        setDescription('');
+      } catch (err: any) {
+        setError(err.response?.data?.detail || "Failed to submit report.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    }, (err) => {
+      setError("Location permission required to report a disease accurately.");
       setIsSubmitting(false);
-    }
+    });
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#0A0F1E]/60 backdrop-blur-sm">
       <motion.div 
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -95,7 +106,7 @@ const ReportDiseaseModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => 
                 value={diseaseName}
                 onChange={(e) => setDiseaseName(e.target.value)}
                 placeholder="e.g. Dengue, Malaria, Viral Fever"
-                className="w-full bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-primary-500 transition-all font-medium"
+                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-primary-500 transition-all font-medium"
                 required
               />
             </div>
@@ -149,7 +160,7 @@ const ReportDiseaseModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide more details about your symptoms or situation..."
-              className="w-full bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl p-4 outline-none focus:border-primary-500 transition-all min-h-[100px] resize-none"
+              className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 outline-none focus:border-primary-500 transition-all min-h-[100px] resize-none"
             />
           </div>
 

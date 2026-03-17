@@ -6,21 +6,22 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import ChatbotWidget from '../components/ChatbotWidget';
 import LocationPermissionModal from '../components/disease/LocationPermissionModal';
-import axios from 'axios';
+import api from '../api/instance';
+import AIAutocompleteInput from '../components/AIAutocompleteInput';
 
 const SidebarItem = ({ to, icon: Icon, label, active, onClick }: any) => (
   <Link to={to} onClick={onClick}>
     <motion.div 
-      whileHover={{ scale: 1.02, x: 5 }}
-      whileTap={{ scale: 0.98 }}
-      className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-300 ${
+      whileHover={{ backgroundColor: active ? '' : 'rgba(37, 99, 235, 0.05)' }}
+      className={`relative flex items-center space-x-3 p-3.5 rounded-xl transition-all duration-300 ${
         active 
-          ? 'bg-primary-gradient text-white shadow-lg' 
-          : 'hover:bg-white/10 text-slate-500 dark:text-slate-400'
+          ? 'bg-blue-50 text-blue-600' 
+          : 'text-slate-600 dark:text-slate-400'
       }`}
     >
-      <Icon size={20} />
-      <span className="font-medium">{label}</span>
+      <Icon size={20} className={active ? 'text-blue-600' : 'text-slate-400'} />
+      <span className={`font-semibold text-sm ${active ? 'text-blue-600' : ''}`}>{label}</span>
+      {active && <div className="sidebar-indicator" />}
     </motion.div>
   </Link>
 );
@@ -29,40 +30,35 @@ const BackgroundLayer = () => {
   const { theme } = useTheme();
   return (
     <div className="bg-layer">
+      <div className="particle-grid" />
       {theme === 'dark' ? (
         <>
-          <div className="particle-grid" />
-          <div className="binary-code-river" />
-          <div className="light-trail left-[15%] opacity-40" style={{ animationDuration: '6s' }} />
-          <div className="light-trail left-[45%] opacity-30" style={{ animationDuration: '9s' }} />
-          <div className="light-trail left-[75%] opacity-40" style={{ animationDuration: '7s' }} />
           <motion.div 
             animate={{ 
-              scale: [1, 1.3, 1],
-              opacity: [0.05, 0.15, 0.05] 
+              scale: [1, 1.2, 1],
+              opacity: [0.03, 0.08, 0.03] 
             }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-cyan-500/10 blur-[130px] rounded-full" 
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 blur-[130px] rounded-full" 
           />
         </>
       ) : (
         <>
-          <div className="wireframe-geo" />
           <motion.div 
             animate={{ 
-              y: [0, -20, 0],
-              scale: [1, 1.1, 1] 
+              y: [0, -30, 0],
+              scale: [1, 1.05, 1] 
             }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-[15%] right-[10%] w-[35%] h-[35%] bg-primary-light/10 blur-[100px] rounded-full" 
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-[10%] right-[-5%] w-[40%] h-[40%] bg-blue-100/40 blur-[120px] rounded-full" 
           />
           <motion.div 
             animate={{ 
-              y: [0, 20, 0],
-              scale: [1.1, 1, 1.1] 
+              y: [0, 30, 0],
+              scale: [1.05, 1, 1.05] 
             }}
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: -5 }}
-            className="absolute bottom-[20%] left-[5%] w-[30%] h-[30%] bg-secondary-light/10 blur-[100px] rounded-full" 
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: -5 }}
+            className="absolute bottom-[10%] left-[-5%] w-[35%] h-[35%] bg-teal-50/50 blur-[120px] rounded-full" 
           />
         </>
       )}
@@ -70,12 +66,27 @@ const BackgroundLayer = () => {
   );
 };
 
+const Footer = () => (
+  <footer className="mt-auto py-8 px-6 border-t border-slate-200 dark:border-white/5 flex flex-col md:flex-row justify-between items-center text-slate-500 text-xs font-medium space-y-4 md:space-y-0">
+    <div className="flex items-center space-x-2">
+      <Shield size={14} className="text-blue-500" />
+      <span>© 2026 SwasthyaSetu AI • Secure Medical Framework</span>
+    </div>
+    <div className="flex space-x-6">
+      <a href="#" className="hover:text-blue-500 transition-colors">Privacy Policy</a>
+      <a href="#" className="hover:text-blue-500 transition-colors">Terms of Service</a>
+      <a href="#" className="hover:text-blue-500 transition-colors">Contact Support</a>
+    </div>
+  </footer>
+);
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
   const { logout, user } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState('');
 
   useEffect(() => {
     requestLocation();
@@ -92,10 +103,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const { latitude, longitude } = position.coords;
         setShowLocationModal(false);
         try {
-          await axios.post('http://localhost:8000/api/diseases/update-location', {
+          await api.post('/diseases/update-location', {
             latitude,
             longitude
-          }, { withCredentials: true });
+          });
         } catch (error) {
           console.error("Error updating location:", error);
         }
@@ -107,23 +118,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   };
 
-  const menuItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/upload', icon: FileUp, label: 'Upload Reports' },
-    { to: '/reports', icon: ClipboardList, label: 'My Reports' },
-    { to: '/claims', icon: Shield, label: 'AI Claim Analyzer' },
-    { to: '/disease-hub', icon: MapIcon, label: 'Disease Hub' },
-    { to: '/profile', icon: User, label: 'Emergency Profile' },
-    { type: 'divider', label: 'Innovation Lab' },
-    { to: '/innovation/problems', icon: FlaskConical, label: 'Problem Hub' },
-    { to: '/innovation/ideas', icon: Lightbulb, label: 'Idea Generator' },
-    { to: '/innovation/threads', icon: MessageSquare, label: 'Collab Threads' },
-    { to: '/innovation/sandbox', icon: Database, label: 'Data Sandbox' },
-    { to: '/settings', icon: Settings, label: 'Settings' },
+  const role = localStorage.getItem("userRole") || 'patient';
+
+  const patientItems = [
+    { to: '/', icon: LayoutDashboard, label: 'Health Center' },
+    { to: '/upload', icon: FileUp, label: 'Vault Upload' },
+    { to: '/reports', icon: ClipboardList, label: 'Medical Records' },
+    { to: '/claims', icon: Shield, label: 'Clinical Audit' },
+    { to: '/disease-hub', icon: MapIcon, label: 'Outbreak Radar' },
+    { to: '/profile', icon: User, label: 'Patient Identity' },
+    { type: 'divider', label: 'Innovation Engine' },
+    { to: '/innovation/problems', icon: FlaskConical, label: 'Challenges' },
+    { to: '/innovation/ideas', icon: Lightbulb, label: 'Clinical Ideas' },
+    { to: '/innovation/threads', icon: MessageSquare, label: 'Collaboration' },
+    { to: '/innovation/sandbox', icon: Database, label: 'Data Lab' },
+    { to: '/settings', icon: Settings, label: 'Preferences' },
   ];
 
+  const doctorItems = [
+    { to: '/doctor', icon: LayoutDashboard, label: 'Clinic Overview' },
+    { to: '/reports', icon: ClipboardList, label: 'Case Folders' },
+    { to: '/disease-hub', icon: MapIcon, label: 'Epidemiology' },
+    { type: 'divider', label: 'Medical Intelligence' },
+    { to: '/claims', icon: Shield, label: 'Claim Verification' },
+    { to: '/innovation/problems', icon: FlaskConical, label: 'Clinical Research' },
+    { to: '/settings', icon: Settings, label: 'Practice Profile' },
+  ];
+
+  const menuItems = role === 'doctor' ? doctorItems : patientItems;
+
   return (
-    <div className={`min-h-screen flex ${theme === 'dark' ? 'dark text-white' : 'text-slate-800'}`}>
+    <div className={`min-h-screen flex ${theme === 'dark' ? 'dark text-white' : 'text-slate-900'}`}>
       <BackgroundLayer />
       
       {/* Mobile Sidebar Overlay */}
@@ -134,31 +159,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
           />
         )}
       </AnimatePresence>
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 w-64 glass-light dark:glass-dark m-0 lg:m-4 p-4 z-50 
-        transition-transform duration-300 transform 
+        fixed lg:static inset-y-0 left-0 w-72 z-50 
+        transition-all duration-300 transform 
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        flex flex-col
+        flex flex-col shadow-2xl lg:shadow-none
+        bg-[var(--bg-sidebar)] border-r border-[var(--border-main)]
       `}>
-        <div className="mb-8 p-2 flex justify-between items-center">
-          <h1 className={`text-2xl font-bold ${theme === 'dark' ? 'gradient-text-dark' : 'gradient-text-light'}`}>
-            SwasthyaSetu AI
-          </h1>
-          <button className="lg:hidden" onClick={() => setIsSidebarOpen(false)}>
-            <X size={24} />
+        <div className="h-20 flex items-center px-8 border-b border-[var(--border-main)]">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-[var(--accent-primary)] rounded-lg flex items-center justify-center text-white font-bold">S</div>
+            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
+              SwasthyaSetu
+            </h1>
+          </div>
+          <button className="lg:hidden ml-auto p-2" onClick={() => setIsSidebarOpen(false)}>
+            <X size={20} className="text-[var(--text-secondary)]" />
           </button>
         </div>
         
-        <nav className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-hide">
+        <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto pr-2 scrollbar-hide">
           {menuItems.map((item: any, i: number) => (
             item.type === 'divider' ? (
-              <div key={i} className="pt-4 pb-2 px-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 opacity-60">
+              <div key={i} className="pt-6 pb-2 px-4 text-[11px] font-bold uppercase tracking-widest text-slate-400">
                 {item.label}
               </div>
             ) : (
@@ -172,70 +201,82 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
         
-        <div className="mt-auto border-t border-slate-200 dark:border-white/10 pt-4">
+        <div className="p-6 border-t border-slate-100 dark:border-white/5">
           <button 
             onClick={logout}
-            className="flex items-center space-x-3 p-3 w-full hover:bg-red-500/10 text-red-500 rounded-xl transition-all"
+            className="flex items-center space-x-3 p-4 w-full hover:bg-red-50 text-red-600 rounded-xl transition-all group"
           >
-            <LogOut size={20} />
-            <span className="font-medium">Logout</span>
+            <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="font-bold text-sm uppercase tracking-wider">Secure Terminate</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col p-4 lg:p-6 overflow-y-auto">
-        <header className="flex justify-between items-center mb-8 glass-light dark:glass-dark px-4 py-3 sticky top-0 z-30">
-          <div className="flex items-center space-x-4">
-            <button className="lg:hidden p-2" onClick={() => setIsSidebarOpen(true)}>
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Header */}
+        <header className="h-20 flex justify-between items-center px-6 lg:px-10 backdrop-blur-md border-b border-[var(--border-main)] bg-[var(--glass-bg)] z-30 transition-all duration-300">
+          <div className="flex items-center space-x-6">
+            <button className="lg:hidden p-2 text-[var(--text-secondary)]" onClick={() => setIsSidebarOpen(true)}>
               <Menu size={24} />
             </button>
-            <div className="hidden lg:flex items-center bg-white/10 dark:bg-black/20 rounded-xl px-4 py-2 border border-white/10">
-              <Search size={18} className="text-slate-400 mr-2" />
-              <input 
-                type="text" 
-                placeholder="Search health records..." 
-                className="bg-transparent outline-none w-64 text-sm"
+            <div className="hidden md:flex items-center bg-[var(--bg-primary)] rounded-xl px-4 h-11 border border-[var(--border-main)] focus-within:border-[var(--accent-primary)] focus-within:bg-[var(--bg-card)] transition-all">
+              <Search size={18} className="text-[var(--text-secondary)] mr-3" />
+              <AIAutocompleteInput 
+                value={globalSearch}
+                onChange={setGlobalSearch}
+                placeholder="Lookup clinical codes or records..."
+                context="global_search"
+                className="bg-transparent outline-none w-72 text-sm font-medium border-none p-0 focus:ring-0 text-[var(--text-primary)]"
               />
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 lg:space-x-4">
-            <button className="p-2.5 glass-light dark:glass-dark rounded-xl hover:scale-110 transition-all relative">
-              <Bell size={20} className="text-slate-500 dark:text-slate-400" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800" />
+          <div className="flex items-center space-x-4">
+            <button className="p-2.5 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-all relative">
+              <Bell size={20} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-blue-600 rounded-full border-2 border-white dark:border-slate-800" />
             </button>
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2.5 glass-light dark:glass-dark rounded-xl hover:scale-110 transition-all group"
+              className="p-2.5 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
             >
-              {theme === 'dark' 
-                ? <Sun size={20} className="text-yellow-400 transition-transform group-hover:rotate-45" /> 
-                : <Moon size={20} className="text-violet-600 transition-transform group-hover:-rotate-12" />
-              }
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <div className="flex items-center space-x-3 pl-2 border-l border-white/20">
-              <div className="hidden md:block text-right">
-                <p className="text-xs font-bold leading-tight">{user?.name || 'Authorized Guest'}</p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-tighter">Premium Node</p>
+            
+            <div className="h-8 w-[1px] bg-slate-200 dark:bg-white/10 mx-2" />
+            
+            <div className="flex items-center space-x-3 pl-2">
+              <div className="hidden lg:block text-right">
+                <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight">{user?.name || 'Authorized Guest'}</p>
+                <div className="flex items-center justify-end space-x-1.5 mt-0.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Verified Node</p>
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-primary-gradient p-[2px] flex items-center justify-center">
-                <div className="w-full h-full rounded-[10px] bg-white/10 flex items-center justify-center overflow-hidden">
-                   <User size={24} className="text-white" />
+              <div className="w-10 h-10 rounded-xl bg-blue-600 p-[2px] flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <div className="w-full h-full rounded-[10px] bg-white dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                   <User size={22} className="text-blue-600" />
                 </div>
               </div>
             </div>
           </div>
         </header>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10"
-        >
-          {children}
-        </motion.div>
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          <div className="p-6 lg:p-10 max-w-[1600px] w-full mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              {children}
+            </motion.div>
+          </div>
+          
+          <Footer />
+        </div>
       </main>
 
       {showLocationModal && <LocationPermissionModal onEnable={requestLocation} />}

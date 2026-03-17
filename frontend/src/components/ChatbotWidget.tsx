@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Send, X, User, Sparkles, Loader2, Bot } from 'lucide-react';
-import axios from 'axios';
+import api from '../api/instance';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ChatbotWidget() {
@@ -27,8 +27,8 @@ export default function ChatbotWidget() {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:8000/api/chatbot/ask', { message: userMsg });
-      setMessages(prev => [...prev, {role: 'ai', content: res.data.response}]);
+      const response = await api.post('/chatbot/ask', { message: userMsg });
+      setMessages(prev => [...prev, { role: 'ai', content: response.data.response }]);
     } catch (err: any) {
       let errorMsg = "Neural sync interrupted. Please try again.";
       if (err.response?.status === 401) {
@@ -131,14 +131,51 @@ export default function ChatbotWidget() {
       </AnimatePresence>
 
       <motion.button 
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.1, rotate: 10 }}
+        whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center space-x-3 px-6 py-4 rounded-full shadow-2xl transition-all ${theme === 'dark' ? 'bg-cyan-500 text-black shadow-cyan-400/20' : 'bg-primary-gradient text-white shadow-primary-light/30'}`}
+        className={`
+          w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all relative overflow-hidden group
+          ${theme === 'dark' 
+            ? 'bg-cyan-500 text-black shadow-cyan-400/50' 
+            : 'bg-primary-gradient text-white shadow-primary-light/40'}
+        `}
       >
-        <MessageSquare size={24} />
-        <span className="font-black uppercase tracking-[0.2em] text-[12px]">AI Health Assistant</span>
+        <div className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-150 transition-transform duration-500 rounded-full" />
+        <AnimatePresence mode="wait">
+          {isOpen ? (
+            <motion.div
+              key="close"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+            >
+              <X size={28} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="bot"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              className="relative"
+            >
+              <Bot size={28} />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-[#050810] animate-bounce" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Glow Effects */}
+        {theme === 'dark' && (
+          <div className="absolute inset-0 rounded-full shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]" />
+        )}
       </motion.button>
+      
+      {/* External Glow Pulse */}
+      {!isOpen && (
+        <div className={`absolute inset-0 w-16 h-16 rounded-full animate-ping opacity-20 pointer-events-none ${theme === 'dark' ? 'bg-cyan-400' : 'bg-primary-light'}`} />
+      )}
     </div>
   );
 }

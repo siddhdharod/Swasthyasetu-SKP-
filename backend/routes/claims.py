@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from database import claims_collection
 from utils.jwt_handler import get_current_user
-from utils.pdf_extractor import extract_text_from_pdf
+from utils.document_processor import DocumentProcessor
 from services.ai_similarity import calculate_similarity
-from services.gemini_service import GeminiService
+from services.ai_service import AIService
 import time
 from bson import ObjectId
 
@@ -12,13 +12,13 @@ router = APIRouter()
 @router.post("/analyze")
 async def analyze_claim(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     content = await file.read()
-    text = extract_text_from_pdf(content)
+    text = await DocumentProcessor.process_document(content, file.filename, file.content_type)
     
     if not text:
-        raise HTTPException(status_code=400, detail="Could not extract text from claim PDF. If this is a photo/scan, please ensure it has selectable text.")
+        raise HTTPException(status_code=400, detail="Unable to extract content. Please upload a clearer document or image.")
     
-    # NLP and Similarity Analysis using Gemini
-    gemini_analysis = await GeminiService.analyze_medical_document(text)
+    # NLP and Similarity Analysis using AI Service
+    ai_analysis = await AIService.analyze_claim(text)
     
     # Internal duplicate detection - OPTIMIZED
     from services.ai_similarity import get_embedding, calculate_sim_from_embeddings
@@ -35,23 +35,14 @@ async def analyze_claim(file: UploadFile = File(...), current_user: dict = Depen
             if sim > max_internal_similarity:
                 max_internal_similarity = sim
             
-    # Safely extract NLP components
-    nlp_default = {
-        "summary": "Document analysis complete.",
-        "findings": ["No structured findings extracted."],
-        "recommendations": ["No specific recommendations."]
-    }
-    nlp_report = gemini_analysis.get("nlp_report", nlp_default)
-    if not isinstance(nlp_report, dict): nlp_report = nlp_default
+    # The AI service now returns a structured JSON for analyze_claim
 
     claim_record = {
         "user_id": current_user["sub"],
         "filename": file.filename,
-        "text": text[:2000], # Store a bit more
+        "text": text[:2000],
         "internal_similarity": max_internal_similarity,
-        "medical_similarity": gemini_analysis.get("medical_similarity", 0),
-        "ai_writing_score": gemini_analysis.get("ai_writing_score", 0),
-        "nlp_report": nlp_report,
+        "ai_analysis": ai_analysis,
         "timestamp": time.time()
     }
     
@@ -59,9 +50,7 @@ async def analyze_claim(file: UploadFile = File(...), current_user: dict = Depen
     
     return {
         "internal_similarity_percentage": round(max_internal_similarity * 100, 2),
-        "medical_similarity_percentage": gemini_analysis.get("medical_similarity", 0),
-        "ai_writing_percentage": gemini_analysis.get("ai_writing_score", 0),
-        "nlp_report": nlp_report
+        "ai_analysis": ai_analysis
     }
 
 @router.get("/history")

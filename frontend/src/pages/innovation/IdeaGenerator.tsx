@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '../../api/instance';
 import { Lightbulb, Zap, Plus, Search, ChevronRight, Target, BrainCircuit, Activity, AlertCircle, Sparkles, Cpu, Globe, User, Send } from 'lucide-react';
-import axios from 'axios';
 import { useTheme } from '../../context/ThemeContext';
 import AIAutocompleteInput from '../../components/AIAutocompleteInput';
-
-const API_BASE = 'http://localhost:8000/api/problems';
 
 export default function IdeaGenerator() {
   const { theme } = useTheme();
@@ -24,7 +22,8 @@ export default function IdeaGenerator() {
 
   const fetchProblems = async () => {
     try {
-      const res = await axios.get(API_BASE);
+      // Changed from axios.get(API_BASE)
+      const res = await api.get('/problems');
       setProblems(res.data);
     } catch (err) {
       console.error(err);
@@ -40,48 +39,50 @@ export default function IdeaGenerator() {
 
   const fetchIdeas = async (problemId: string) => {
     try {
-      const res = await axios.get(`${API_BASE}/${problemId}/ideas`);
+      // Changed from axios.get(`${API_BASE}/${problemId}/ideas`)
+      const res = await api.get(`/problems/${problemId}/ideas`);
       setIdeas(res.data);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleGenerateAI = async () => {
+  const generateAIIdeas = async () => {
     if (!selectedProblem) return;
     setIsGenerating(true);
     try {
-      const res = await axios.post(`${API_BASE}/${selectedProblem.id}/ideas`, {
+      // Changed from axios.post(`${API_BASE}/${selectedProblem.id}/ideas`, ...)
+      const res = await api.post(`/problems/${selectedProblem.id}/ideas`, {
         type: 'ai',
         problem_text: selectedProblem.description
       });
       // Backend returns the newly generated AI ideas
-      setIdeas([...res.data, ...ideas]);
+      setIdeas([...ideas, res.data]);
     } catch (err) {
       console.error(err);
-    } finally {
-      setIsGenerating(false);
     }
+    setIsGenerating(false);
   };
 
-  const handleSubmitUserIdea = async (e: React.FormEvent) => {
+  const submitUserIdea = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProblem || !userIdeaTitle || !userIdeaDesc) return;
     setIsSubmittingUserIdea(true);
     try {
-      const res = await axios.post(`${API_BASE}/${selectedProblem.id}/ideas`, {
+      // Changed from axios.post(`${API_BASE}/${selectedProblem.id}/ideas`, ...)
+      // The instruction provided a different endpoint and payload for this specific call.
+      const res = await api.post(`/problems/${selectedProblem.id}/ideas`, {
         type: 'user',
         title: userIdeaTitle,
         description: userIdeaDesc
       });
-      setIdeas([res.data, ...ideas]);
+      setIdeas([...ideas, res.data]);
       setUserIdeaTitle('');
       setUserIdeaDesc('');
     } catch (err) {
       console.error(err);
-    } finally {
-      setIsSubmittingUserIdea(false);
     }
+    setIsSubmittingUserIdea(false);
   };
 
   const glassClass = theme === 'dark' ? 'glass-dark' : 'glass-light';
@@ -174,21 +175,21 @@ export default function IdeaGenerator() {
                       </div>
                       <h4 className="text-[14px] font-black uppercase tracking-widest text-slate-500">Option A: User Strategy</h4>
                     </div>
-                    <form onSubmit={handleSubmitUserIdea} className="space-y-4">
+                    <form onSubmit={submitUserIdea} className="space-y-4">
                       <AIAutocompleteInput 
                         value={userIdeaTitle}
                         onChange={setUserIdeaTitle}
                         context="idea_generator"
                         placeholder="Strategy Title"
                         required
-                        className={`w-full bg-white/5 dark:bg-black/20 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50'} rounded-xl px-4 py-3 text-[14px] font-bold outline-none`}
+                        className={`w-full bg-white/5 dark:bg-white/5 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50'} rounded-xl px-4 py-3 text-[14px] font-bold outline-none`}
                       />
                       <textarea 
                         value={userIdeaDesc}
                         onChange={(e) => setUserIdeaDesc(e.target.value)}
                         rows={3}
                         placeholder="Detailed explanation..."
-                        className={`w-full bg-white/5 dark:bg-black/20 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50'} rounded-xl px-4 py-3 text-[14px] font-medium outline-none resize-none`}
+                        className={`w-full bg-white/5 dark:bg-white/5 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50'} rounded-xl px-4 py-3 text-[14px] font-medium outline-none resize-none`}
                         required
                       />
                       <button 
@@ -211,8 +212,8 @@ export default function IdeaGenerator() {
                       <h4 className="text-[14px] font-black uppercase tracking-widest text-slate-500">Option B: AI Synthesis</h4>
                       <p className="text-[12px] text-slate-400 pb-4">Generate 3 high-feasibility clinical strategies using neural refinement.</p>
                       <button 
-                        onClick={handleGenerateAI}
-                        disabled={isGenerating}
+                        onClick={generateAIIdeas}
+                        disabled={isGenerating || !selectedProblem}
                         className={`w-full ${theme === 'dark' ? 'btn-primary-dark' : 'btn-primary-light'} flex items-center justify-center space-x-3 !py-4 !text-[14px] shadow-2xl relative z-10`}
                       >
                         <Sparkles size={20} className={isGenerating ? "animate-spin" : ""} />

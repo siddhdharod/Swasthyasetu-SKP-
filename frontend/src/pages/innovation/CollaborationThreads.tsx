@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, MessageSquare, User, Clock, Zap, Sparkles, TrendingUp, Search, Binary, Hash, ArrowRight } from 'lucide-react';
-import axios from 'axios';
+import api from '../../api/instance';
 import { useTheme } from '../../context/ThemeContext';
-
-const API_BASE = 'http://localhost:8000/api/problems';
+import AIAutocompleteInput from '../../components/AIAutocompleteInput';
 
 export default function CollaborationThreads() {
   const { theme } = useTheme();
@@ -14,6 +13,7 @@ export default function CollaborationThreads() {
   const [newMessage, setNewMessage] = useState('');
   const [summary, setSummary] = useState('');
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [threadSearch, setThreadSearch] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,19 +36,40 @@ export default function CollaborationThreads() {
     }
   }, [messages]);
 
-  const fetchProblems = async () => {
+  const handleJoin = async (id: string) => {
     try {
-      const res = await axios.get(API_BASE);
-      setProblems(res.data);
+      await api.post(`/problems/${id}/join`);
+      fetchProblems();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedProblem) return;
+    try {
+      await api.post(`/problems/${selectedProblem.id}/messages`, {
+        content: newMessage
+      });
+      setNewMessage('');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchProblems = async () => {
+    try {
+      const resp = await api.get('/problems');
+      setProblems(resp.data);
+    } catch (e) {
+      console.error(e);
     }
   };
 
   const fetchMessages = async () => {
     if (!selectedProblem) return;
     try {
-      const res = await axios.get(`${API_BASE}/${selectedProblem.id}/messages`);
+      const res = await api.get(`/problems/${selectedProblem.id}/messages`);
       setMessages(res.data);
     } catch (err) {
       console.error(err);
@@ -59,7 +80,7 @@ export default function CollaborationThreads() {
     if (!selectedProblem) return;
     setIsSummarizing(true);
     try {
-      const res = await axios.get(`${API_BASE}/${selectedProblem.id}/summary`);
+      const res = await api.get(`/problems/${selectedProblem.id}/summary`);
       setSummary(res.data.summary);
     } catch (err) {
       console.error(err);
@@ -71,7 +92,7 @@ export default function CollaborationThreads() {
   const handleSendMessage = async () => {
     if (!newMessage || !selectedProblem) return;
     try {
-      await axios.post(`${API_BASE}/${selectedProblem.id}/messages`, 
+      await api.post(`/problems/${selectedProblem.id}/messages`, 
         { content: newMessage }
       );
       setNewMessage('');
@@ -106,9 +127,12 @@ export default function CollaborationThreads() {
         <div className={`w-[320px] ${glassClass} flex flex-col p-5 border-transparent shadow-xl overflow-hidden shrink-0`}>
           <div className="mb-6 relative">
              <Search size={16} className="absolute left-4 top-3.5 text-slate-400" />
-             <input 
+             <AIAutocompleteInput 
+              value={threadSearch}
+              onChange={setThreadSearch}
               placeholder="Search threads..." 
-              className={`w-full bg-white/5 dark:bg-black/20 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/30' : 'border-slate-200 focus:border-primary-light/30'} rounded-2xl pl-11 pr-4 py-3 text-[14px] outline-none transition-all font-bold tracking-tight`} 
+              context="collaboration_search"
+              className={`w-full bg-white/5 dark:bg-white/5 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/30' : 'border-slate-200 focus:border-primary-light/30'} rounded-2xl pl-11 pr-4 py-3 text-[14px] outline-none transition-all font-bold tracking-tight`} 
              />
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide">
@@ -230,7 +254,7 @@ export default function CollaborationThreads() {
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                       placeholder="Enter clinical strategy..."
-                      className={`flex-1 bg-white/5 dark:bg-black/40 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50'} rounded-2xl px-6 py-4 text-[14px] font-bold outline-none transition-all shadow-inner`}
+                      className={`flex-1 bg-white/5 dark:bg-white/5 border ${theme === 'dark' ? 'border-white/10 focus:border-cyan-500/50' : 'border-slate-200 focus:border-primary-light/50'} rounded-2xl px-6 py-4 text-[14px] font-bold outline-none transition-all shadow-inner`}
                     />
                     <motion.button 
                       whileHover={{ scale: 1.05 }}

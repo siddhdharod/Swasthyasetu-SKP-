@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { FileText, Trash2, Download, Search, Filter, Loader2, Upload, ChevronRight, Calendar, MoreVertical, ExternalLink } from 'lucide-react';
+import api from '../api/instance';
+import { FileText, Trash2, Download, Search, Filter, Loader2, Upload, ChevronRight, Calendar, MoreVertical, ExternalLink, Shield, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { Link } from 'react-router-dom';
@@ -14,7 +14,7 @@ export default function MyReports() {
 
   const fetchReports = async () => {
     try {
-      const resp = await axios.get('http://localhost:8000/reports/');
+      const resp = await api.get('/reports/');
       setReports(resp.data);
     } catch (err) {
       console.error(err);
@@ -29,7 +29,7 @@ export default function MyReports() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this report?')) return;
     try {
-      await axios.delete(`http://localhost:8000/reports/${id}`);
+      await api.delete(`/reports/${id}`);
       setReports(reports.filter(r => r._id !== id));
     } catch (err) {
       console.error(err);
@@ -46,50 +46,50 @@ export default function MyReports() {
   const reportTypes = ['All', ...new Set(reports.map(r => r.report_type))];
 
   return (
-    <div className="space-y-8 py-4">
+    <div className="max-w-7xl mx-auto space-y-10 py-4 pb-20">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
           <h2 className="text-4xl font-extrabold tracking-tight">
-            Vaulted <span className={theme === 'dark' ? 'gradient-text-dark' : 'gradient-text-light'}>Recordings</span>
+            Medical <span className={theme === 'dark' ? 'gradient-text-dark' : 'gradient-text-light'}>Records Vault</span>
           </h2>
-          <p className="text-slate-500 font-medium">Manage and access your encrypted medical history.</p>
+          <p className="text-slate-500 font-medium">Securely access and manage your clinical data history.</p>
         </div>
         
         <Link to="/upload">
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="btn-primary-light dark:btn-primary-dark flex items-center space-x-2 py-3 shadow-xl shadow-primary-light/20"
+            className="bg-blue-600 text-white font-bold py-3.5 px-8 rounded-2xl flex items-center space-x-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all"
           >
             <Upload size={20} />
-            <span>Add New Record</span>
+            <span className="uppercase tracking-widest text-xs">Upload New record</span>
           </motion.button>
         </Link>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-6">
         <div className="relative flex-1 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-light transition-colors" size={20} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent-primary)] transition-colors z-10" size={20} />
           <input 
             type="text" 
-            placeholder="Search within your secure vault..." 
+            placeholder="Search by diagnosis, hospital, or document type..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full glass-light dark:glass-dark pl-12 pr-4 py-4 outline-none border border-slate-200 dark:border-white/10 focus:ring-2 ring-primary-light transition-all font-medium rounded-2xl"
+            className="w-full bg-[var(--bg-card)] pl-12 pr-4 py-4 outline-none border border-[var(--border-main)] focus:border-[var(--accent-primary)] focus:ring-4 ring-[var(--accent-primary)]/5 transition-all font-bold text-sm rounded-2xl shadow-sm text-[var(--text-primary)]"
           />
         </div>
-        <div className="flex gap-2 scrollbar-hide overflow-x-auto pb-2 md:pb-0">
+        <div className="flex gap-2 scrollbar-hide overflow-x-auto pb-2 lg:pb-0">
           {reportTypes.map((type: any) => (
             <button
               key={type}
               onClick={() => setFilterType(type)}
               className={`
-                px-5 py-3 rounded-2xl whitespace-nowrap font-bold text-xs uppercase tracking-widest transition-all
+                px-6 py-3 rounded-2xl whitespace-nowrap font-bold text-[10px] uppercase tracking-[0.2em] transition-all
                 ${filterType === type 
-                  ? 'bg-primary-gradient text-white shadow-lg' 
-                  : 'glass-light dark:glass-dark text-slate-500 hover:border-primary-light/50'}
+                  ? 'bg-[var(--accent-primary)] text-white shadow-lg shadow-blue-500/20' 
+                  : 'bg-[var(--bg-card)] border border-[var(--border-main)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]'}
               `}
             >
               {type}
@@ -100,98 +100,122 @@ export default function MyReports() {
 
       {/* Content Area */}
       {loading ? (
-        <div className="h-96 flex flex-col items-center justify-center space-y-4">
-          <Loader2 className="animate-spin text-primary-light" size={48} />
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Accessing Encrypted Storage...</p>
+        <div className="h-96 flex flex-col items-center justify-center space-y-6">
+          <div className="relative w-20 h-20">
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0 border-4 border-[var(--accent-primary)] border-t-transparent rounded-full shadow-lg"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Shield size={24} className="text-[var(--accent-primary)]" />
+            </div>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] animate-pulse">Syncing with Health Vault...</p>
         </div>
       ) : filteredReports.length === 0 ? (
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-light dark:glass-dark p-20 text-center space-y-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[var(--bg-card)] border border-[var(--border-main)] p-20 text-center rounded-[3rem] shadow-xl"
         >
-          <div className="w-24 h-24 mx-auto bg-slate-500/5 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-700">
+          <div className="w-24 h-24 mx-auto bg-[var(--bg-primary)] rounded-[2rem] flex items-center justify-center text-[var(--text-secondary)] mb-6 opacity-30">
             <FileText size={48} strokeWidth={1} />
           </div>
-          <div className="space-y-2">
-            <h3 className="text-2xl font-bold">No records found</h3>
-            <p className="text-slate-500 max-w-xs mx-auto">Your vault is empty or no records match your current search parameters.</p>
+          <div className="space-y-3">
+            <h3 className="text-2xl font-extrabold text-[var(--text-primary)]">Vault Empty</h3>
+            <p className="text-[var(--text-secondary)] max-w-sm mx-auto font-bold opacity-60">Your clinical history is empty or no records match your search.</p>
           </div>
-          <Link to="/upload" className="inline-block text-primary-light font-bold hover:underline">
-            Upload your first document
+          <Link to="/upload" className="inline-block mt-8 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-black uppercase tracking-widest text-[10px] px-8 py-4 rounded-xl hover:bg-[var(--accent-primary)] hover:text-white transition-all">
+            Securely Upload First Document
           </Link>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AnimatePresence mode="popLayout">
-            {filteredReports.map((report, idx) => (
-              <motion.div 
-                key={report._id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                className="glass-light dark:glass-dark group hover:border-primary-light/50 transition-all overflow-hidden flex flex-col h-full shadow-lg hover:shadow-primary-light/5"
-              >
-                {/* Card Header */}
-                <div className="p-6 flex justify-between items-start">
-                  <div className="p-4 bg-primary-gradient/10 text-primary-light rounded-2xl group-hover:bg-primary-gradient group-hover:text-white transition-all transform group-hover:rotate-6">
-                    <FileText size={24} />
+            {filteredReports.map((report, idx) => {
+              const isRaw = report.cloudinary_url?.includes('/raw/upload/');
+              const downloadUrl = isRaw 
+                ? report.cloudinary_url.replace('/upload/', '/upload/fl_attachment/')
+                : report.cloudinary_url;
+
+              return (
+                <motion.div 
+                  key={report._id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
+                  className="bg-[var(--bg-card)] border border-[var(--border-main)] rounded-[2.5rem] p-4 flex flex-col group hover:border-[var(--accent-primary)] hover:shadow-2xl hover:shadow-blue-500/5 transition-all"
+                >
+                  <div className="bg-[var(--bg-primary)] rounded-[2rem] p-6 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="p-3.5 bg-[var(--accent-primary)] text-white rounded-2xl group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg shadow-blue-500/30">
+                        <FileText size={24} />
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <motion.button 
+                          onClick={() => handleDelete(report._id)} 
+                          whileHover={{ scale: 1.1 }}
+                          className="p-2.5 text-[var(--text-secondary)] hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all"
+                          title="Purge Record"
+                        >
+                          <Trash2 size={18} />
+                        </motion.button>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-primary)] px-3 py-1 bg-[var(--accent-primary)]/10 rounded-full border border-[var(--accent-primary)]/20">
+                            {report.report_type}
+                          </span>
+                          <div className="w-1 h-1 rounded-full bg-[var(--border-main)]" />
+                          <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Verified</span>
+                        </div>
+                        <h3 className="font-extrabold text-xl text-[var(--text-primary)] leading-tight line-clamp-2 min-h-[3.5rem]" title={report.title}>
+                          {report.title}
+                        </h3>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-4 border-t border-[var(--border-main)] opacity-80">
+                        <div className="flex items-center space-x-2 text-[var(--text-secondary)] font-bold">
+                          <Calendar size={14} className="text-[var(--accent-primary)]" />
+                          <span className="text-xs">{new Date(report.upload_date * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                           <ShieldCheck size={14} className="text-emerald-500" />
+                           <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Signed</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1">
+
+                  {/* Actions */}
+                  <div className="grid grid-cols-2 gap-3 p-3">
                     <a 
                       href={report.cloudinary_url} 
                       target="_blank" 
-                      rel="noreferrer" 
-                      className="p-2 hover:bg-primary-light/10 text-slate-400 hover:text-primary-light rounded-xl transition-all"
-                      title="Download"
+                      rel="noreferrer"
+                      className="flex items-center justify-center space-x-2 py-3 text-[11px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:bg-[var(--bg-card)] rounded-2xl transition-all border border-transparent hover:border-[var(--border-main)]"
                     >
-                      <Download size={18} />
+                      <ExternalLink size={14} />
+                      <span>Review</span>
                     </a>
-                    <button 
-                      onClick={() => handleDelete(report._id)} 
-                      className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-500 rounded-xl transition-all"
-                      title="Delete"
+                    <a 
+                      href={downloadUrl} 
+                      download
+                      className="flex items-center justify-center space-x-2 py-3 text-[11px] font-black uppercase tracking-widest text-[var(--accent-primary)] bg-[var(--bg-card)] rounded-2xl transition-all border border-[var(--border-main)] hover:bg-[var(--accent-primary)] hover:text-white hover:border-[var(--accent-primary)] shadow-sm"
                     >
-                      <Trash2 size={18} />
-                    </button>
+                      <Download size={14} />
+                      <span>Archive</span>
+                    </a>
                   </div>
-                </div>
-
-                {/* Card Body */}
-                <div className="px-6 pb-6 flex-1 space-y-4">
-                  <div>
-                    <h3 className="font-bold text-xl truncate mb-1" title={report.title}>{report.title}</h3>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary-light px-2 py-0.5 bg-primary-light/10 rounded-full border border-primary-light/20">
-                        {report.report_type}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 text-slate-500 text-xs font-semibold">
-                    <div className="flex items-center space-x-1">
-                      <Calendar size={14} />
-                      <span>{new Date(report.upload_date * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Footer */}
-                <div className="p-4 bg-white/30 dark:bg-black/20 border-t border-white/10 mt-auto">
-                  <a 
-                    href={report.cloudinary_url} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="w-full flex items-center justify-center space-x-2 py-2 text-sm font-bold text-primary-light hover:bg-primary-light hover:text-white rounded-xl transition-all border border-primary-light/30"
-                  >
-                    <span>Inspect Document</span>
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
       )}

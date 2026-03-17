@@ -16,6 +16,7 @@ import CollaborationThreads from './pages/innovation/CollaborationThreads';
 import DataSandbox from './pages/innovation/DataSandbox';
 import Settings from './pages/Settings';
 import DiseaseHub from './pages/DiseaseHub';
+import DoctorDashboard from './pages/DoctorDashboard';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -117,6 +118,14 @@ function App() {
         <ProtectedRoute>
           <DashboardLayout>
             <Settings />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/doctor" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <DoctorDashboard />
           </DashboardLayout>
         </ProtectedRoute>
       } />
